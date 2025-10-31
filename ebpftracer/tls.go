@@ -30,7 +30,7 @@ var (
 )
 
 func (t *Tracer) AttachOpenSslUprobes(pid uint32) []link.Link {
-	if t.disableL7Tracing {
+	if t.disableL7Tracing || t.disableTLSUprobes {
 		return nil
 	}
 	libPath, version := getSslLibPathAndVersion(pid)
@@ -119,7 +119,7 @@ func (t *Tracer) AttachOpenSslUprobes(pid uint32) []link.Link {
 
 func (t *Tracer) AttachGoTlsUprobes(pid uint32) ([]link.Link, bool) {
 	isGolangApp := false
-	if t.disableL7Tracing {
+	if t.disableL7Tracing || t.disableTLSUprobes {
 		return nil, isGolangApp
 	}
 
