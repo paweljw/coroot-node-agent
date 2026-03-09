@@ -26,7 +26,7 @@ import (
 )
 
 var (
-	gcInterval                = 10 * time.Minute
+	gcInterval                = *flags.GCInterval
 	pingTimeout               = 300 * time.Millisecond
 	multilineCollectorTimeout = time.Second
 	gpuStatsWindow            = 15 * time.Second
