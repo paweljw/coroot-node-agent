@@ -82,6 +82,8 @@ type Tracer struct {
 	disableL7Tracing bool
 	hostNetNs        netns.NsHandle
 	selfNetNs        netns.NsHandle
+	maxConnections   int
+	maxL7Requests    int
 
 	collection *ebpf.Collection
 	readers    map[string]*perf.Reader
@@ -89,7 +91,7 @@ type Tracer struct {
 	uprobes    map[string]*ebpf.Program
 }
 
-func NewTracer(hostNetNs, selfNetNs netns.NsHandle, disableL7Tracing bool) *Tracer {
+func NewTracer(hostNetNs, selfNetNs netns.NsHandle, disableL7Tracing bool, maxConnections, maxL7Requests int) *Tracer {
 	if disableL7Tracing {
 		klog.Infoln("L7 tracing is disabled")
 	}
@@ -97,6 +99,8 @@ func NewTracer(hostNetNs, selfNetNs netns.NsHandle, disableL7Tracing bool) *Trac
 		disableL7Tracing: disableL7Tracing,
 		hostNetNs:        hostNetNs,
 		selfNetNs:        selfNetNs,
+		maxConnections:   maxConnections,
+		maxL7Requests:    maxL7Requests,
 
 		readers: map[string]*perf.Reader{},
 		uprobes: map[string]*ebpf.Program{},
@@ -216,6 +220,20 @@ func (t *Tracer) ebpf(ch chan<- Event) error {
 	collectionSpec, err := ebpf.LoadCollectionSpecFromReader(bytes.NewReader(prog))
 	if err != nil {
 		return fmt.Errorf("failed to load collection spec: %w", err)
+	}
+	if t.maxConnections > 0 {
+		for _, name := range []string{"active_connections", "connection_id_by_socket"} {
+			if m := collectionSpec.Maps[name]; m != nil {
+				klog.Infof("overriding %s max_entries: %d -> %d", name, m.MaxEntries, t.maxConnections)
+				m.MaxEntries = uint32(t.maxConnections)
+			}
+		}
+	}
+	if t.maxL7Requests > 0 {
+		if m := collectionSpec.Maps["active_l7_requests"]; m != nil {
+			klog.Infof("overriding active_l7_requests max_entries: %d -> %d", m.MaxEntries, t.maxL7Requests)
+			m.MaxEntries = uint32(t.maxL7Requests)
+		}
 	}
 	_ = unix.Setrlimit(unix.RLIMIT_MEMLOCK, &unix.Rlimit{Cur: unix.RLIM_INFINITY, Max: unix.RLIM_INFINITY})
 	c, err := ebpf.NewCollectionWithOptions(collectionSpec, ebpf.CollectionOptions{

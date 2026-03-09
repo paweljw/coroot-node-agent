@@ -16,6 +16,10 @@ var (
 	DisableL7Tracing     = kingpin.Flag("disable-l7-tracing", "Disable L7 tracing").Default("false").Envar("DISABLE_L7_TRACING").Bool()
 	DisableGPUMonitoring = kingpin.Flag("disable-gpu-monitoring", "Disable GPU monitoring (NVML)").Default("false").Envar("DISABLE_GPU_MONITORING").Bool()
 
+	MaxConnections   = kingpin.Flag("max-connections", "Maximum number of tracked TCP connections in eBPF maps").Default("1000000").Envar("MAX_CONNECTIONS").Int()
+	MaxL7Requests    = kingpin.Flag("max-l7-requests", "Maximum number of in-flight L7 requests in eBPF maps").Default("32768").Envar("MAX_L7_REQUESTS").Int()
+	GCInterval       = kingpin.Flag("gc-interval", "How often to run container garbage collection").Default("10m").Envar("GC_INTERVAL").Duration()
+
 	ContainerAllowlist = kingpin.Flag("container-allowlist", "List of allowed containers (regex patterns)").Envar("CONTAINER_ALLOWLIST").Strings()
 	ContainerDenylist  = kingpin.Flag("container-denylist", "List of denied containers (regex patterns)").Envar("CONTAINER_DENYLIST").Strings()
 
